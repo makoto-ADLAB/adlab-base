@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { useAccount, useConnect, useDisconnect, useReadContract } from "wagmi"
+import { config as wagmiConfig } from "../wagmi"
 
 const SBT_CONTRACT = "0x7Db34db211f767484c8Ca9AC3Ef801C74D813488"
 
@@ -26,6 +27,11 @@ export default function Gate() {
   const { address, isConnected } = useAccount()
   const { connectors, connect, status, error } = useConnect()
   const { disconnect } = useDisconnect()
+// useConnect().connectors が空の時は、wagmi.js 側のコネクタ一覧を使う（別プロファイル対策）
+ const allConnectors = (connectors?.length ? connectors : wagmiConfig.connectors)
+
+  const wcProjectId = import.meta.env.VITE_WALLETCONNECT_PROJECT_ID
+
 
   // ---- Lookup用（アドレス入力） ----
   const [lookup, setLookup] = useState("")
@@ -74,9 +80,18 @@ export default function Gate() {
         {!isConnected ? (
           <>
             <p style={{ opacity: 0.8 }}>ウォレット接続は本人確認です（なりすまし防止）。</p>
+            <p style={{ opacity: 0.7 }}>
+              WalletConnect Project ID:{" "}
+              <code>{wcProjectId ? wcProjectId.slice(0, 6) + "..." : "MISSING"}</code>
+            </p>
+
+            <p style={{ opacity: 0.7 }}>
+              Connectors: <code>{connectors.map((c) => c.name).join(", ")}</code>
+            </p>
+
 
             <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-              {connectors.map((c) => (
+              {allConnectors.map((c) => (
                 <button
                   key={c.uid}
                   onClick={() => connect({ connector: c })}

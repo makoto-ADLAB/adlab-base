@@ -2,6 +2,9 @@ import { useEffect, useMemo, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { useAccount, useReadContract } from "wagmi"
 import { JOBS } from "../data/jobs.js"
+import { base } from "wagmi/chains"
+import { useChainId, useSwitchChain } from "wagmi"
+
 
 // --- SBT gate ---
 const SBT_CONTRACT = "0x7Db34db211f767484c8Ca9AC3Ef801C74D813488"
@@ -25,15 +28,22 @@ export default function Jobs() {
     abi: sbtAbi,
     functionName: "balanceOf",
     args: [address],
+    chainId: base.id, //base net only
     query: { enabled: !!address },
   })
   const hasSbt = read.data ? BigInt(read.data) > 0n : false
 
   // ✅ protect route
   useEffect(() => {
+    if (!isConnected) {
+    navigate("/", { replace: true })
+    return
+  }
     if (read.isLoading) return
-    if (!isConnected) navigate("/", { replace: true })
-    if (isConnected && !hasSbt) navigate("/", { replace: true })
+    if (read.isError) return
+    if (!hasSbt) navigate("/", { replace: true })
+    //if (!isConnected) navigate("/", { replace: true })
+    //if (isConnected && !hasSbt) navigate("/", { replace: true })
   }, [isConnected, hasSbt, read.isLoading, navigate])
 
   // --- UI state ---
@@ -67,6 +77,34 @@ const filtered = useMemo(() => {
     })
 }, [q, cat])
 
+const chainId = useChainId()
+const { switchChain } = useSwitchChain()
+const isBase = chainId === base.id
+
+if (isConnected && !isBase) {
+  return (
+    <div style={{ padding: 40, fontFamily: "sans-serif", maxWidth: 980 }}>
+      <h1>Jobs (SBT holders)</h1>
+      <p style={{ opacity: 0.85 }}>
+        ADLAB SBT は <b>Base</b> 上に存在します。ネットワークを切り替えてください。
+      </p>
+      <button
+        onClick={() => switchChain({ chainId: base.id })}
+        style={{ padding: "10px 14px", cursor: "pointer" }}
+      >
+        Switch to Base
+      </button>
+      <div style={{ marginTop: 12 }}>
+        <button
+          onClick={() => navigate("/")}
+          style={{ padding: "10px 14px", cursor: "pointer" }}
+        >
+          Back to Gate
+        </button>
+      </div>
+    </div>
+  )
+}
 
 
   if (!isConnected || read.isLoading) {
