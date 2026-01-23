@@ -2,6 +2,8 @@ import { useMemo, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { useAccount, useConnect, useDisconnect, useReadContract } from "wagmi"
 import { config as wagmiConfig } from "../wagmi"
+import { useSignMessage } from "wagmi"
+
 
 const SBT_CONTRACT = "0x7Db34db211f767484c8Ca9AC3Ef801C74D813488"
 
@@ -30,7 +32,42 @@ export default function Gate() {
 // useConnect().connectors が空の時は、wagmi.js 側のコネクタ一覧を使う（別プロファイル対策）
  const allConnectors = (connectors?.length ? connectors : wagmiConfig.connectors)
 
-  const wcProjectId = import.meta.env.VITE_WALLETCONNECT_PROJECT_ID
+ const wcProjectId = import.meta.env.VITE_WALLETCONNECT_PROJECT_ID
+
+ //署名用
+const { signMessageAsync, isPending: isSigning } = useSignMessage()
+
+async function sbtLogin() {
+  try {
+    if (!address) return alert("Wallet not connected")
+
+    // 1) nonce取得（cookie adlab_nonce がセットされる）
+    const r1 = await fetch("/api/auth/nonce", { method: "GET" })
+    const n = await r1.json()
+    if (!r1.ok) throw new Error(n?.error || "nonce failed")
+
+    // 2) 署名（ガスなし）
+    const signature = await signMessageAsync({ message: n.message })
+
+    // 3) verify（成功すると cookie adlab_token がセットされる）
+    const r2 = await fetch("/api/auth/verify", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ address, signature }),
+    })
+    const v = await r2.json()
+    if (!r2.ok) throw new Error(v?.error || "verify failed")
+
+    alert("✅ Login OK (SBT verified)")
+    // ここで Projects へ行けるようにする
+    // navigate("/projects") でもOK（まだページが無ければ /jobs でOK）
+  } catch (e) {
+    console.error(e)
+    alert("⚠️ " + (e?.message || "login error"))
+  }
+}
+
+
 
 
   // ---- Lookup用（アドレス入力） ----
@@ -141,6 +178,15 @@ export default function Gate() {
                   >
                     Enter ADLAB BASE (Jobs)
                   </button>
+                  {/* ✅ 追加：API用 SBT Login（署名→JWT） */}
+                  <button 
+                    onClick={sbtLogin} 
+                    disabled={isSigning} 
+                    style={{ padding: "10px 14px", cursor: "pointer", marginTop: 10 }}
+                  >
+                    {isSigning ? "Signing…" : "SBT Login (for Projects/API)"}
+                  </button>
+
                 </div>
               ) : (
                 <div style={{ padding: 12, border: "1px solid #ddd", borderRadius: 10 }}>
