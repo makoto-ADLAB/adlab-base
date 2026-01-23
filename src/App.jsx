@@ -2,6 +2,8 @@ import { Routes, Route, Navigate } from "react-router-dom"
 import Gate from "./pages/Gate.jsx"
 import Jobs from "./pages/Jobs.jsx"
 import Apply from "./pages/Apply.jsx"
+import ProjectNew from "./pages/ProjectNew.jsx"
+import PublicProject from "./pages/PublicProject.jsx"
 
 export default function App() {
   return (
