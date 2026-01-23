@@ -186,6 +186,12 @@ async function sbtLogin() {
                   >
                     {isSigning ? "Signing…" : "SBT Login (for Projects/API)"}
                   </button>
+                  <button 
+                    onClick={() => navigate("/projects/new")}
+                    style={{ padding: "10px 14px", cursor: "pointer", marginTop: 10 }}
+                  >
+                    Create Project
+                  </button>
 
                 </div>
               ) : (
